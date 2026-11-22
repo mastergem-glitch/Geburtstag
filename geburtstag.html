@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alles Gute zum Geburtstag! 🎂</title>
+<style>
+:root{--bg1:#2b1055;--bg2:#d53369;--card:rgba(255,255,255,.14);--txt:#fff;--acc:#ffd166;--ok:#06d6a0;--bad:#ff6b6b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg1:#150a30;--bg2:#8e1f4d}}
+:root[data-theme="dark"]{--bg1:#150a30;--bg2:#8e1f4d}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--txt);background:linear-gradient(160deg,var(--bg1),var(--bg2));background-attachment:fixed;overflow-x:hidden}
+#app{min-height:100%;display:flex;align-items:center;justify-content:center;padding:18px}
+.card{width:100%;max-width:460px;background:var(--card);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.25);border-radius:26px;padding:26px 22px;text-align:center;animation:pop .5s ease}
+@keyframes pop{from{transform:scale(.9) translateY(20px);opacity:0}to{transform:none;opacity:1}}
+h1{font-size:1.7rem;margin:.2em 0 .4em}
+h2{font-size:1.3rem;margin:.2em 0 .5em}
+p{line-height:1.5;margin:.5em 0}
+.big{font-size:3.4rem;animation:bob 2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-10px) rotate(6deg)}}
+button,input{font:inherit}
+.btn{display:block;width:100%;margin:10px 0 0;padding:14px;border:0;border-radius:16px;background:var(--acc);color:#3a1450;font-weight:700;font-size:1.05rem;cursor:pointer;transition:transform .15s}
+.btn:active{transform:scale(.96)}
+.opt{background:rgba(255,255,255,.2);color:var(--txt)}
+.opt.ok{background:var(--ok);color:#043}
+.opt.bad{background:var(--bad);animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+input{width:100%;padding:14px;border-radius:14px;border:0;text-align:center;font-size:1.1rem;margin-top:10px;color:#222}
+.dots{display:flex;gap:8px;justify-content:center;margin-bottom:10px}
+.dots i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.35)}
+.dots i.on{background:var(--acc);transform:scale(1.3)}
+#field{position:relative;height:260px;margin-top:12px;background:rgba(0,0,0,.18);border-radius:18px;overflow:hidden;touch-action:manipulation}
+.heart{position:absolute;font-size:2.2rem;border:0;background:none;padding:0;cursor:pointer;animation:float 3s ease-in-out infinite alternate}
+@keyframes float{from{transform:translateY(0) scale(1)}to{transform:translateY(-14px) scale(1.15)}}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
+.chip{padding:10px 14px;border-radius:999px;border:2px solid rgba(255,255,255,.4);background:none;color:var(--txt);cursor:pointer;font-size:1rem}
+.chip.sel{background:var(--acc);color:#3a1450;border-color:var(--acc);font-weight:700}
+.rezept{background:#fff8e1;color:#4a3000;border-radius:14px;padding:14px;margin-top:12px;text-align:left;transform:rotate(-1.5deg);box-shadow:0 6px 16px rgba(0,0,0,.25)}
+.msg p{opacity:0;animation:fade .8s forwards}
+@keyframes fade{to{opacity:1}}
+#mute{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;z-index:5;border:0;border-radius:50%;width:42px;height:42px;font-size:1.2rem;background:var(--card);color:var(--txt);cursor:pointer}
+canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
+.hide{display:none}
+</style>
+</head>
+<body>
+<button id="mute" class="hide" aria-label="Ton an/aus">🔊</button>
+<canvas id="fx"></canvas>
+<div id="app"></div>
+<script>
+const app=document.getElementById('app'),cv=document.getElementById('fx'),cx=cv.getContext('2d');
+let name='Superheldin',AC,master,muted=false,melodyOn=false,melTimer;
+function size(){cv.width=innerWidth;cv.height=innerHeight}size();addEventListener('resize',size);
+
+/* ---------- Audio ---------- */
+function initAudio(){
+  if(AC)return;
+  AC=new (window.AudioContext||window.webkitAudioContext)();
+  master=AC.createGain();master.gain.value=1;master.connect(AC.destination);
+}
+const MEL=[[392,.75],[392,.25],[440,1],[392,1],[523,1],[494,2],[392,.75],[392,.25],[440,1],[392,1],[587,1],[523,2],[392,.75],[392,.25],[784,1],[659,1],[523,1],[494,1],[440,1],[698,.75],[698,.25],[659,1],[523,1],[587,1],[523,2]];
+function playMelody(){
+  if(!AC||!melodyOn)return;
+  let t=AC.currentTime+.1;const b=.42;
+  MEL.forEach(([f,d])=>{
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type='triangle';o.frequency.value=f;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.12,t+.03);g.gain.exponentialRampToValueAtTime(.001,t+d*b*.95);
+    o.connect(g);g.connect(master);o.start(t);o.stop(t+d*b);t+=d*b;
+  });
+  melTimer=setTimeout(playMelody,(t-AC.currentTime+1.5)*1000);
+}
+function startMusic(){melodyOn=true;clearTimeout(melTimer);playMelody()}
+function stopMusic(){melodyOn=false;clearTimeout(melTimer)}
+function noise(dur){const n=AC.sampleRate*dur,b=AC.createBuffer(1,n,AC.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;return b}
+function boom(delay=0,vol=1){
+  if(!AC)return;const t=AC.currentTime+delay;
+  // Pfeifen
+  const w=AC.createOscillator(),wg=AC.createGain();
+  w.frequency.setValueAtTime(500,t);w.frequency.exponentialRampToValueAtTime(1800,t+.5);
+  wg.gain.setValueAtTime(.05*vol,t);wg.gain.linearRampToValueAtTime(0,t+.5);
+  w.connect(wg);wg.connect(master);w.start(t);w.stop(t+.55);
+  // Knall
+  const s=AC.createBufferSource();s.buffer=noise(1.2);
+  const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(1800,t+.5);f.frequency.exponentialRampToValueAtTime(120,t+1.5);
+  const g=AC.createGain();g.gain.setValueAtTime(0,t+.5);g.gain.linearRampToValueAtTime(.9*vol,t+.52);g.gain.exponentialRampToValueAtTime(.001,t+1.6);
+  s.connect(f);f.connect(g);g.connect(master);s.start(t+.5);
+  // Knistern
+  for(let i=0;i<14;i++){
+    const c=AC.createBufferSource();c.buffer=noise(.05);
+    const hp=AC.createBiquadFilter();hp.type='highpass';hp.frequency.value=3000;
+    const cg=AC.createGain();const ct=t+.6+Math.random()*1.1;
+    cg.gain.setValueAtTime(.25*vol,ct);cg.gain.exponentialRampToValueAtTime(.001,ct+.05);
+    c.connect(hp);hp.connect(cg);cg.connect(master);c.start(ct);
+  }
+}
+function ding(f=880){
+  if(!AC)return;const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();
+  o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.18,t);g.gain.exponentialRampToValueAtTime(.001,t+.35);
+  o.connect(g);g.connect(master);o.start(t);o.stop(t+.4);
+}
+function buzz(){
+  if(!AC)return;const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();
+  o.type='sawtooth';o.frequency.value=140;g.gain.setValueAtTime(.1,t);g.gain.exponentialRampToValueAtTime(.001,t+.25);
+  o.connect(g);g.connect(master);o.start(t);o.stop(t+.3);
+}
+const muteBtn=document.getElementById('mute');
+muteBtn.onclick=()=>{muted=!muted;master.gain.value=muted?0:1;muteBtn.textContent=muted?'🔇':'🔊'};
+
+/* ---------- Partikel ---------- */
+let parts=[],running=false;
+function confetti(n=120){
+  const cols=['#ffd166','#ef476f','#06d6a0','#118ab2','#fff','#ff9f1c'];
+  for(let i=0;i<n;i++)parts.push({x:Math.random()*cv.width,y:-20-Math.random()*cv.height*.5,vx:(Math.random()-.5)*2,vy:2+Math.random()*3,c:cols[i%6],s:5+Math.random()*6,r:Math.random()*6,life:400,type:'c'});
+  loop();
+}
+function firework(x,y){
+  const h=Math.random()*360;
+  for(let i=0;i<70;i++){
+    const a=Math.PI*2*i/70,v=2+Math.random()*4;
+    parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,c:`hsl(${h+Math.random()*40},100%,60%)`,s:3,life:80+Math.random()*30,type:'f'});
+  }
+  loop();
+}
+function loop(){
+  if(running)return;running=true;
+  (function step(){
+    cx.clearRect(0,0,cv.width,cv.height);
+    parts=parts.filter(p=>p.life>0&&p.y<cv.height+30);
+    parts.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;p.life--;
+      if(p.type==='f'){p.vy+=.06;p.vx*=.985;cx.globalAlpha=Math.min(1,p.life/40);cx.fillStyle=p.c;cx.beginPath();cx.arc(p.x,p.y,p.s,0,7);cx.fill()}
+      else{p.r+=.1;cx.globalAlpha=1;cx.fillStyle=p.c;cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);cx.restore()}
+    });
+    if(parts.length)requestAnimationFrame(step);else{running=false;cx.clearRect(0,0,cv.width,cv.height)}
+  })();
+}
+
+/* ---------- Seiten ---------- */
+const dots=n=>`<div class="dots">${[1,2,3,4].map(i=>`<i class="${i<=n?'on':''}"></i>`).join('')}</div>`;
+function show(html){app.innerHTML=`<div class="card">${html}</div>`}
+
+function gate(){
+  show(`<div class="big">🎁</div><h1>Psst… eine Überraschung wartet auf dich!</h1><p>Mach den Ton an 🔊 und tippe unten, um zu starten.</p><input id="nm" placeholder="Wie heißt du?" maxlength="20" autocomplete="off"><button class="btn" id="go">Los geht’s! 🎉</button>`);
+  const h=decodeURIComponent(location.hash.slice(1));if(h)document.getElementById('nm').value=h;
+  document.getElementById('go').onclick=()=>{
+    const v=document.getElementById('nm').value.trim();if(v)name=v;
+    initAudio();AC.resume();muteBtn.classList.remove('hide');startMusic();ding(660);confetti(50);stage1();
+  };
+}
+
+function stage1(){
+  show(`${dots(1)}<h2>Stufe 1: Das Pflege-Quiz 🩺</h2><p>Als zukünftige Pflegeprofi-Legende weißt du das sicher, ${name}:</p><p><b>Welche Körpertemperatur ist beim Erwachsenen normal?</b></p><div id="o"></div>`);
+  const opts=[['42 °C – Sauna-Modus 🔥',0],['36,5 – 37,5 °C 🌡️',1],['30 °C – Eisbär-Modus 🐻‍❄️',0]];
+  const box=document.getElementById('o');
+  opts.forEach(([t,ok])=>{
+    const b=document.createElement('button');b.className='btn opt';b.textContent=t;
+    b.onclick=()=>{
+      if(ok){b.classList.add('ok');ding(988);confetti(60);box.insertAdjacentHTML('beforeend',`<p>✅ Richtig! Du bist schon jetzt ein Profi!</p><button class="btn" id="n">Weiter ➜</button>`);document.getElementById('n').onclick=stage2;[...box.querySelectorAll('.opt')].forEach(x=>x.disabled=true)}
+      else{b.classList.add('bad');buzz();b.textContent+=' – Hmm, eher nicht! 😅'}
+    };box.appendChild(b);
+  });
+}
+
+function stage2(){
+  show(`${dots(2)}<h2>Stufe 2: Herzfrequenz-Check 💓</h2><p>Fang <b>7 Herzen</b> ein, um deinen Puls zu stabilisieren!</p><p>Gefangen: <b id="c">0</b> / 7</p><div id="field"></div>`);
+  const f=document.getElementById('field');let n=0;
+  const spawn=()=>{
+    const b=document.createElement('button');b.className='heart';b.textContent=['❤️','💖','💗','💝'][Math.floor(Math.random()*4)];
+    b.style.left=(5+Math.random()*80)+'%';b.style.top=(5+Math.random()*75)+'%';b.setAttribute('aria-label','Herz');
+    b.onclick=()=>{b.remove();n++;document.getElementById('c').textContent=n;ding(600+n*80);
+      if(n>=7){f.innerHTML='<p style="padding-top:90px;font-size:1.3rem">Puls stabil! 😍<br>Du bist bereit.</p>';confetti(60);setTimeout(stage3,1600)}else spawn()};
+    f.appendChild(b);
+  };
+  spawn();spawn();spawn();
+}
+
+function stage3(){
+  const all=['🎂 Kuchen','🎊 Konfetti','☕ Kaffee','🤗 Umarmung','😴 Schlaf','😂 Lachen'];let sel=[];
+  show(`${dots(3)}<h2>Stufe 3: Das Geburtstags-Rezept 💊</h2><p>Dr. Konfetti verschreibt dir deine Medizin. Wähle <b>3 Zutaten</b>:</p><div class="chips" id="ch"></div><div id="r"></div>`);
+  const ch=document.getElementById('ch');
+  all.forEach(t=>{
+    const b=document.createElement('button');b.className='chip';b.textContent=t;
+    b.onclick=()=>{
+      if(b.classList.contains('sel')){b.classList.remove('sel');sel=sel.filter(x=>x!==t);return}
+      if(sel.length>=3){buzz();return}
+      b.classList.add('sel');sel.push(t);ding(700+sel.length*120);
+      if(sel.length===3){
+        document.getElementById('r').innerHTML=`<div class="rezept"><b>℞ Rezept für ${name}</b><br>Diagnose: Akuter Geburtstag 🎈<br>Dosis: ${sel.join(' + ')}<br>Einnahme: 3× täglich, bis es dir richtig gut geht!<br>Nebenwirkungen: Dauergrinsen 😁<br><i>– Dr. Konfetti</i></div><button class="btn" id="n">Rezept einlösen ➜</button>`;
+        document.getElementById('n').onclick=stage4;
+      }
+    };ch.appendChild(b);
+  });
+}
+
+function stage4(){
+  stopMusic();
+  show(`${dots(4)}<div class="big">🎂</div><div class="msg" id="m"></div><button class="btn" id="again">🎆 Nochmal Feuerwerk!</button>`);
+  const lines=[
+    `<h1>Alles Gute zum Geburtstag, ${name}! 🥳</h1>`,
+    `<p>Heute dreht sich alles um <b>dich</b> – die Person, die anderen Menschen in ihren schwersten Momenten die Hand hält. 💛</p>`,
+    `<p>Du lernst, Leben zu schützen, zuzuhören und Mut zu machen. Das ist keine Kleinigkeit – das ist <b>Heldentum im Alltag</b>. 🦸‍♀️</p>`,
+    `<p>Ja, Lernen, Nachtdienste und Prüfungen sind anstrengend. Aber du schaffst das, Schritt für Schritt – und du wirst eine <b>fantastische Pflegefachkraft</b>. 🌟</p>`,
+    `<p>Möge dein neues Lebensjahr voller Kaffee ☕, guter Kolleginnen und Kollegen, ruhiger Schichten und bestandener Prüfungen sein. 🍀</p>`,
+    `<p><b>Wir sind stolz auf dich. Feier heute so richtig! 🎉💖</b></p>`
+  ];
+  const m=document.getElementById('m');
+  lines.forEach((l,i)=>setTimeout(()=>{m.insertAdjacentHTML('beforeend',l);m.lastElementChild.style.animationDelay='0s'},i*1100));
+  const show_fw=()=>{
+    for(let i=0;i<7;i++){
+      const d=i*.7;boom(d,.9);
+      setTimeout(()=>firework(innerWidth*(.15+Math.random()*.7),innerHeight*(.12+Math.random()*.35)),(d+.5)*1000);
+    }
+  };
+  confetti(160);show_fw();
+  document.getElementById('again').onclick=()=>{show_fw();confetti(80)};
+}
+gate();
+</script>
+</body>
+</html>
